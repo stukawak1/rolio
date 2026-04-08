@@ -1,8 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import Anthropic from '@anthropic-ai/sdk'
 import type { RelationState, EvaluationResult, CharacterId } from 'rolio-shared'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 interface ChatRequest {
   userMessage: string
@@ -17,7 +14,7 @@ const SYSTEM_PROMPT = `Ты — движок образовательной иг
 
 - Max (инициатор/заказчик): энергичный, говорит расплывчато, хочет всё сразу, нетерпелив
 - Leo (разработчик): прямолинейный, ценит конкретику, раздражается от неопределённости
-- Nika (QA): внимательная к деталям, думает о ограничениях, осторожная
+- Nika (QA): внимательная к деталям, думает об ограничениях, осторожная
 - Maya (PM): дипломатичная, следит за процессом, ценит структуру
 
 Оцени по 5 критериям (каждый от -2 до +2):
@@ -58,45 +55,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' })
+  }
+
   try {
-    const messages: Anthropic.MessageParam[] = [
-      ...history,
-      {
-        role: 'user',
-        content: `КОНТЕКСТ СЦЕНАРИЯ:\n${scenarioContext}\n\nТЕКУЩИЕ ОТНОШЕНИЯ:\n${JSON.stringify(relations, null, 2)}\n\nОТВЕТ СТУДЕНТА:\n${userMessage}`,
+    // Build conversation for Gemini
+    const conversationParts = history.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }))
+
+    const userPrompt = `КОНТЕКСТ СЦЕНАРИЯ:\n${scenarioContext}\n\nТЕКУЩИЕ ОТНОШЕНИЯ:\n${JSON.stringify(relations, null, 2)}\n\nОТВЕТ СТУДЕНТА:\n${userMessage}`
+
+    const body = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [
+        ...conversationParts,
+        { role: 'user', parts: [{ text: userPrompt }] },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
       },
-    ]
+    }
 
-    const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages,
-    })
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    )
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text()
+      return res.status(500).json({ error: 'Gemini API error', details: errText })
+    }
+
+    const geminiData = await geminiRes.json()
+    const text: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    // Strip markdown code fences if Gemini adds them
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
 
     let result: EvaluationResult
     try {
-      result = JSON.parse(text)
+      result = JSON.parse(cleaned)
     } catch {
       return res.status(500).json({ error: 'Invalid AI response format', raw: text })
     }
 
     // Clamp relation values 0-100
-    const updatedRelations: RelationState = { ...relations }
-    for (const [charId, delta] of Object.entries(result.relationDelta)) {
+    const updatedRelations: RelationState = JSON.parse(JSON.stringify(relations))
+    for (const [charId, delta] of Object.entries(result.relationDelta ?? {})) {
       const char = charId as CharacterId
+      if (!updatedRelations[char]) continue
       for (const [metric, value] of Object.entries(delta ?? {})) {
-        const key = metric as keyof typeof updatedRelations[CharacterId]
-        const current = updatedRelations[char][key]
+        const key = metric as keyof RelationState[CharacterId]
+        const current = updatedRelations[char][key] ?? 50
         updatedRelations[char][key] = Math.max(0, Math.min(100, current + (value as number)))
       }
     }
 
     return res.status(200).json({ ...result, updatedRelations })
   } catch (error) {
-    console.error('Claude API error:', error)
-    return res.status(500).json({ error: 'AI service error' })
+    console.error('Gemini API error:', error)
+    return res.status(500).json({ error: 'AI service error', details: String(error) })
   }
 }
