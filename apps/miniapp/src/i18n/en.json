@@ -1,0 +1,51 @@
+{
+  "onboarding": {
+    "title": "Welcome to Rolio",
+    "subtitle": "Learn IT roles through real life stories",
+    "cta": "Get Started"
+  },
+  "chooseRole": {
+    "title": "Who do you want to become?",
+    "subtitle": "Choose a role — and we'll start your story"
+  },
+  "roles": {
+    "ba": {
+      "name": "Alex",
+      "role": "BA / Systems Analyst",
+      "desc": "Understands what the business needs and explains it to the team"
+    },
+    "pm": {
+      "name": "Maya",
+      "role": "Project Manager",
+      "desc": "Keeps the team on track and watches the deadlines"
+    },
+    "dev": {
+      "name": "Leo",
+      "role": "Developer",
+      "desc": "Writes code and hates vague tasks"
+    },
+    "qa": {
+      "name": "Nika",
+      "role": "QA Engineer",
+      "desc": "Finds issues everywhere — in code and in life"
+    }
+  },
+  "chat": {
+    "inputPlaceholder": "Write your response...",
+    "send": "Send",
+    "thinking": "Team is thinking...",
+    "coachNote": "💡 Insight"
+  },
+  "relations": {
+    "title": "Team Relations",
+    "trust": "Trust",
+    "clarity": "Clarity",
+    "comfort": "Comfort",
+    "patience": "Patience"
+  },
+  "recovery": {
+    "title": "Looks like something went wrong",
+    "cta": "Explain your position",
+    "placeholder": "Write your explanation..."
+  }
+}
