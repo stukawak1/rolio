@@ -10,6 +10,12 @@ import './index.css'
 
 const queryClient = new QueryClient()
 
+// Expand Telegram Mini App to full screen immediately
+if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+  window.Telegram.WebApp.expand()
+  window.Telegram.WebApp.disableVerticalSwipes?.()
+}
+
 function App() {
   const [locale, setLocale] = useState<'ru' | 'en'>('ru')
   const t = createTranslator(locale)

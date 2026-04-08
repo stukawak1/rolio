@@ -56,6 +56,7 @@ export default function Game() {
   const [showRelations, setShowRelations] = useState(false)
   const [recovery, setRecovery] = useState<{ characterId: CharacterId } | null>(null)
   const [history, setHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -78,6 +79,7 @@ export default function Game() {
     setMessages(prev => [...prev, playerMsg])
     setInput('')
     setIsThinking(true)
+    setApiError(null)
 
     try {
       const res = await fetch('/api/chat', {
@@ -133,6 +135,7 @@ export default function Game() {
       }
     } catch (err) {
       console.error(err)
+      setApiError(err instanceof Error ? err.message : 'Ошибка соединения с сервером')
     } finally {
       setIsThinking(false)
     }
@@ -155,12 +158,17 @@ export default function Game() {
     }
   }
 
+  const tgHeight = window.Telegram?.WebApp?.viewportStableHeight
+  const containerHeight = tgHeight ? `${tgHeight}px` : '100dvh'
+
   return (
     <div style={{
-      height: '100dvh',
+      height: containerHeight,
+      maxHeight: containerHeight,
       display: 'flex',
       flexDirection: 'column',
       background: 'var(--bg)',
+      overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
@@ -284,6 +292,27 @@ export default function Game() {
             )}
           </motion.div>
         ))}
+
+        {/* API error */}
+        <AnimatePresence>
+          {apiError && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              style={{
+                background: '#2d1a1a',
+                border: '1px solid var(--danger)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                fontSize: 13,
+                color: 'var(--danger)',
+              }}
+            >
+              ⚠️ {apiError}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Thinking indicator */}
         <AnimatePresence>
