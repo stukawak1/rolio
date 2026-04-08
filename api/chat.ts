@@ -110,10 +110,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Clamp relation values 0-100
     const updatedRelations: RelationState = JSON.parse(JSON.stringify(relations))
-    for (const [charId, delta] of Object.entries(result.relationDelta ?? {})) {
+    const relationDelta = result.relationDelta && typeof result.relationDelta === 'object' ? result.relationDelta : {}
+    for (const [charId, delta] of Object.entries(relationDelta)) {
       const char = charId as CharacterId
-      if (!updatedRelations[char]) continue
-      for (const [metric, value] of Object.entries(delta ?? {})) {
+      if (!updatedRelations[char] || !delta || typeof delta !== 'object') continue
+      for (const [metric, value] of Object.entries(delta)) {
         const key = metric as keyof RelationState[CharacterId]
         const current = updatedRelations[char][key] ?? 50
         updatedRelations[char][key] = Math.max(0, Math.min(100, current + (value as number)))

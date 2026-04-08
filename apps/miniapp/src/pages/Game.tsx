@@ -93,10 +93,14 @@ export default function Game() {
         }),
       })
 
-      const data: EvaluationResult & { updatedRelations: RelationState } = await res.json()
+      const data: EvaluationResult & { updatedRelations: RelationState; error?: string } = await res.json()
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error ?? `Ошибка сервера ${res.status}`)
+      }
 
       // Add character reactions to chat
-      const reactionMessages: ChatMessage[] = Object.entries(data.reactions)
+      const reactionMessages: ChatMessage[] = Object.entries(data.reactions ?? {})
         .filter(([, msg]) => msg && msg.trim())
         .map(([charId, msg]) => ({
           id: crypto.randomUUID(),
