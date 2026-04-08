@@ -46,7 +46,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 ]
 
 export default function Game() {
-  const { roleId } = useParams()
+  const { roleId: _roleId } = useParams()
   const { t } = useLocale()
 
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES)
