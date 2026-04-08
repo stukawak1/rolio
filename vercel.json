@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --workspace=apps/miniapp",
+  "buildCommand": "npm run build -w miniapp",
   "outputDirectory": "apps/miniapp/dist",
   "installCommand": "npm install",
   "rewrites": [
