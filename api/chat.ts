@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
-      return res.status(500).json({ error: 'Gemini API error', details: errText })
+      console.error('Gemini error:', geminiRes.status, errText)
+      return res.status(500).json({ error: `Gemini ${geminiRes.status}: ${errText.slice(0, 200)}` })
     }
 
     const geminiData = await geminiRes.json()
